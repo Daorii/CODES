@@ -1,0 +1,284 @@
+package FinalProject;
+
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import javax.swing.table.DefaultTableModel;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Queue;
+
+public class RecipeStepSequencer {
+	 private JFrame frame;
+	    private JPanel startPanel, mainPanel;
+	    private JTextField stepField, dependsOnField;
+	    private JTextArea resultArea;
+	    private JTable stepsTable;
+
+	    public RecipeStepSequencer() {
+	        
+	        frame = new JFrame("Recipe Step Sequencer");
+	        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+	        frame.setSize(400, 400);
+	        frame.setLayout(new CardLayout()); 
+
+	       
+	        startPanel = new JPanel();
+	        startPanel.setLayout(new GridBagLayout()); 
+
+	        GridBagConstraints gbc = new GridBagConstraints();
+	        gbc.insets = new Insets(10, 10, 10, 10); 
+
+	       
+	        JLabel titleLabel = new JLabel("<html><div style='text-align: center;'>Recipe<br>Step<br>Sequencer</div></html>", JLabel.CENTER);
+	        titleLabel.setFont(new Font("Arial", Font.BOLD, 30));
+	        titleLabel.setForeground(Color.WHITE); 
+	        titleLabel.setOpaque(true);
+	        titleLabel.setBackground(new Color(70, 130, 180)); 
+	        titleLabel.setBorder(BorderFactory.createLineBorder(Color.BLACK, 3)); 
+	        
+	        gbc.gridx = 0;
+	        gbc.gridy = 0;
+	        startPanel.add(titleLabel, gbc); 
+
+	       
+	        JButton nextButton = new JButton("[Next]");
+	        nextButton.setFont(new Font("Arial", Font.PLAIN, 14));
+	        nextButton.setFocusPainted(false);  
+	        nextButton.setForeground(Color.WHITE); 
+	        nextButton.setBackground(new Color(60, 179, 113));
+	        nextButton.setBorder(BorderFactory.createLineBorder(Color.BLACK, 3)); 
+
+	        nextButton.addActionListener(new ActionListener() {
+	            public void actionPerformed(ActionEvent e) {
+	                showMainScreen();  
+	            }
+	        });
+	        
+	        gbc.gridy = 1; 
+	        startPanel.add(nextButton, gbc); 
+
+	        
+	        mainPanel = new JPanel();
+	        mainPanel.setLayout(new GridBagLayout());
+	        GridBagConstraints mainGbc = new GridBagConstraints();
+	        mainGbc.fill = GridBagConstraints.HORIZONTAL;
+
+	       
+	        JLabel stepLabel = new JLabel("Step:");
+	        stepLabel.setFont(new Font("Arial", Font.PLAIN, 18));
+	        mainGbc.gridx = 0;
+	        mainGbc.gridy = 0;
+	        mainPanel.add(stepLabel, mainGbc);
+
+	        stepField = new JTextField(15);
+	        mainGbc.gridx = 1;
+	        mainGbc.gridy = 0;
+	        mainPanel.add(stepField, mainGbc);
+
+	        JLabel dependsOnLabel = new JLabel("Depends On:");
+	        dependsOnLabel.setFont(new Font("Arial", Font.PLAIN, 18));
+	        mainGbc.gridx = 0;
+	        mainGbc.gridy = 1;
+	        mainPanel.add(dependsOnLabel, mainGbc);
+
+	        dependsOnField = new JTextField(15);
+	        mainGbc.gridx = 1;
+	        mainGbc.gridy = 1;
+	        mainPanel.add(dependsOnField, mainGbc);
+
+	       
+	        JButton addButton = new JButton("Add Step");
+	        addButton.setFont(new Font("Arial", Font.PLAIN, 16));
+	        mainGbc.gridx = 0;
+	        mainGbc.gridy = 2;
+	        mainPanel.add(addButton, mainGbc);
+
+	        
+	        addButton.addActionListener(new ActionListener() {
+	            public void actionPerformed(ActionEvent e) {
+	                String step = stepField.getText();
+	                String dependsOn = dependsOnField.getText();
+
+	               
+	                if (step.isEmpty()) {
+	                    JOptionPane.showMessageDialog(frame, "Please enter a step.");
+	                    return;
+	                }
+
+	                if (dependsOn.isEmpty()) {
+	                    dependsOn = "(none)";  
+	                }
+
+	               
+	                DefaultTableModel model = (DefaultTableModel) stepsTable.getModel();
+	                model.addRow(new Object[]{step, dependsOn});
+
+	               
+	                stepField.setText("");
+	                dependsOnField.setText("");
+	            }
+	        });
+
+	        	       
+	        JButton sortButton = new JButton("Sort Steps");
+	        sortButton.setFont(new Font("Arial", Font.PLAIN, 16));
+	        mainGbc.gridx = 1;
+	        mainGbc.gridy = 2;
+	        mainPanel.add(sortButton, mainGbc);
+	        
+	    
+	        sortButton.addActionListener(new ActionListener() {
+	            public void actionPerformed(ActionEvent e) {
+	                try {
+	                   
+	                    DefaultTableModel model = (DefaultTableModel) stepsTable.getModel();
+	                    int rowCount = model.getRowCount();
+	                    	                   
+	                    HashMap<String, java.util.List<String>> graph = new HashMap<>();
+	                    HashMap<String, Integer> inDegree = new HashMap<>();  
+
+	                    for (int i = 0; i < rowCount; i++) {
+	                        String step = (String) model.getValueAt(i, 0);
+	                        String dependsOn = (String) model.getValueAt(i, 1);
+
+	                        graph.putIfAbsent(step, new ArrayList<>());
+	                        inDegree.putIfAbsent(step, 0); 
+
+	                        if (!dependsOn.equals("(none)")) {
+	                            graph.putIfAbsent(dependsOn, new ArrayList<>());
+	                            graph.get(dependsOn).add(step);  
+	                            
+	                            // Increase in-degree of the current step
+	                            inDegree.put(step, inDegree.getOrDefault(step, 0) + 1);
+	                        }
+	                    }
+
+	                    
+	                    java.util.List<String> sortedSteps = new ArrayList<>();
+	                    Queue<String> queue = new LinkedList<>();
+
+	                   
+	                    for (String step : inDegree.keySet()) {
+	                        if (inDegree.get(step) == 0) {
+	                            queue.offer(step);
+	                        }
+	                    }
+
+	                    while (!queue.isEmpty()) {
+	                        String currentStep = queue.poll();
+	                        sortedSteps.add(currentStep);
+
+	                        
+	                        if (graph.containsKey(currentStep)) {
+	                            for (String dependentStep : graph.get(currentStep)) {
+	                               
+	                                inDegree.put(dependentStep, inDegree.get(dependentStep) - 1);
+
+	                              
+	                                if (inDegree.get(dependentStep) == 0) {
+	                                    queue.offer(dependentStep);
+	                                }
+	                            }
+	                        }
+	                    }
+
+	                   
+	                    if (sortedSteps.size() != rowCount) {
+	                        resultArea.setText("Error: There is a circular dependency in the steps.");
+	                    } else {
+	                        
+	                        resultArea.setText("Sorted Steps:\n");
+	                        for (String step : sortedSteps) {
+	                            resultArea.append(step + "\n");
+	                        }
+	                    }
+
+	                } catch (Exception ex) {
+	                    resultArea.setText("Error while sorting: " + ex.getMessage());
+	                }
+	            }
+	        });
+
+
+	        JButton resetButton = new JButton("Reset");
+	        resetButton.setFont(new Font("Arial", Font.PLAIN, 16));
+	        mainGbc.gridx = 2;
+	        mainGbc.gridy = 2;
+	        mainPanel.add(resetButton, mainGbc);
+	        
+	        resetButton.addActionListener(new ActionListener() {
+	            public void actionPerformed(ActionEvent e) {
+	                
+	                stepField.setText("");
+	                dependsOnField.setText("");
+
+	               
+	                DefaultTableModel model = (DefaultTableModel) stepsTable.getModel();
+	                model.setRowCount(0); 
+
+	                
+	                resultArea.setText("");
+	            }
+	        });
+
+	    
+	        String[] columnNames = {"Step", "Depends On"};
+	        DefaultTableModel tableModel = new DefaultTableModel(columnNames, 0); 
+	        stepsTable = new JTable(tableModel);
+	        JScrollPane scrollPane = new JScrollPane(stepsTable);
+	        mainGbc.gridx = 0;
+	        mainGbc.gridy = 3;
+	        mainGbc.gridwidth = 3;
+	        mainPanel.add(scrollPane, mainGbc);
+       
+	        resultArea = new JTextArea(5, 30);
+	        resultArea.setEditable(false);
+	        JScrollPane resultScrollPane = new JScrollPane(resultArea);
+	        mainGbc.gridx = 0;
+	        mainGbc.gridy = 4;
+	        mainGbc.gridwidth = 3;
+	        mainPanel.add(resultScrollPane, mainGbc);
+
+	    
+	        addButton.addActionListener(new ActionListener() {
+	            public void actionPerformed(ActionEvent e) {
+	                String step = stepField.getText().trim(); 
+	                String dependsOn = dependsOnField.getText().trim(); 
+               
+	                if (step.isEmpty()) {
+	                    JOptionPane.showMessageDialog(frame, "Please enter a step.", "Error", JOptionPane.ERROR_MESSAGE);
+	                    return; 
+	                }
+	               
+	                if (dependsOn.isEmpty()) {
+	                    dependsOn = "(none)";
+	                }
+
+	                DefaultTableModel model = (DefaultTableModel) stepsTable.getModel();
+	                model.addRow(new Object[]{step, dependsOn}); 
+	                
+	                stepField.setText(""); 
+	                dependsOnField.setText("");
+	            }
+	        });
+	       
+	        frame.add(startPanel, "Start");
+	        frame.add(mainPanel, "Main");
+
+	        
+	        frame.setVisible(true);
+	    }
+	  
+	    private void showMainScreen() {
+	        CardLayout cl = (CardLayout) frame.getContentPane().getLayout();
+	        cl.show(frame.getContentPane(), "Main");
+	    }
+
+	    public static void main(String[] args) {
+	        new RecipeStepSequencer();
+	    }
+	}
